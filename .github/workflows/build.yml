@@ -32,8 +32,8 @@ jobs:
       - name: Grant gradlew permission
         run: chmod +x gradlew
 
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee build.log
+      - name: Build Release APK
+        run: ./gradlew assembleRelease --no-daemon --stacktrace 2>&1 | tee build.log
 
       - name: Upload build log
         if: always()
@@ -42,16 +42,9 @@ jobs:
           name: build-log
           path: build.log
 
-      - name: Upload APK
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: torchlight-bot-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
-
       - name: Copy APK to release name
         if: success()
-        run: cp app/build/outputs/apk/debug/app-debug.apk torchlight-bot.apk
+        run: cp app/build/outputs/apk/release/app-release.apk torchlight-bot.apk
 
       - name: Publish to GitHub Releases
         if: success()
