@@ -23,6 +23,60 @@ public class ImageFinder {
         return r > 180 && g > 120 && b < 120 && r > b + 80 && g > b;
     }
 
+    /** 判断橙色菱形引导石（橙黄） */
+    public static boolean isOrange(int r, int g, int b) {
+        return r > 190 && g > 110 && b < 110 && r > b + 90;
+    }
+
+    /**
+     * 在指定区域内找"最靠下（y最大）的颜色团块"的重心。
+     * 适用于：菱形引导石排成一排，取离角色最近（屏幕最下方）的那个。
+     */
+    public static Result findLowestCluster(Bitmap bitmap, ColorFilter filter, float[] region) {
+        int w = bitmap.getWidth();
+        int h = bitmap.getHeight();
+        int x0 = 0, y0 = 0, x1 = w, y1 = h;
+        if (region != null && region.length == 4) {
+            x0 = (int) (region[0] * w);
+            y0 = (int) (region[1] * h);
+            x1 = (int) (region[2] * w);
+            y1 = (int) (region[3] * h);
+        }
+
+        int lowestY = -1;
+        for (int y = y1 - 1; y >= y0; y--) {
+            boolean has = false;
+            for (int x = x0; x < x1; x++) {
+                int c = bitmap.getPixel(x, y);
+                int r = (c >> 16) & 0xFF, g = (c >> 8) & 0xFF, b = c & 0xFF;
+                if (filter.match(r, g, b)) { has = true; break; }
+            }
+            if (has) { lowestY = y; break; }
+        }
+        if (lowestY < 0) return null;
+
+        int minY = Math.max(y0, lowestY - 120);
+        long sumX = 0, sumY = 0;
+        int count = 0;
+        for (int y = minY; y <= lowestY; y++) {
+            for (int x = x0; x < x1; x++) {
+                int c = bitmap.getPixel(x, y);
+                int r = (c >> 16) & 0xFF, g = (c >> 8) & 0xFF, b = c & 0xFF;
+                if (filter.match(r, g, b)) {
+                    sumX += x;
+                    sumY += y;
+                    count++;
+                }
+            }
+        }
+        if (count == 0) return null;
+        Result res = new Result();
+        res.x = (float) sumX / count / w;
+        res.y = (float) sumY / count / h;
+        res.score = 1.0f;
+        return res;
+    }
+
     /**
      * 在整张图中扫描某种颜色，找到该颜色像素的重心（归一化坐标）
      */

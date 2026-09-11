@@ -25,9 +25,16 @@ public class AssistService extends AccessibilityService {
     private static AssistService instance;
     private WindowManager windowManager;
     private LinearLayout floatPanel;
+    private LinearLayout floatContent;   // 可折叠的内容区
     private TextView floatLog;
     private boolean floatAdded = false;
+    private boolean minimized = false;
     private final Handler handler = new Handler(Looper.getMainLooper());
+    private WindowManager.LayoutParams floatParams;
+
+    // 拖动相关
+    private float dragStartX, dragStartY;
+    private int dragStartWX, dragStartWY;
 
     public interface ScreenshotCallback {
         void onScreenshot(Bitmap bitmap);
@@ -130,34 +137,67 @@ public class AssistService extends AccessibilityService {
     public void showFloatPanel() {
         if (floatAdded) return;
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
+
         floatPanel = new LinearLayout(this);
         floatPanel.setOrientation(LinearLayout.VERTICAL);
         floatPanel.setBackgroundColor(0xCC000000);
-        floatPanel.setPadding(20, 20, 20, 20);
+        floatPanel.setPadding(16, 12, 16, 12);
 
+        // 标题栏（可拖动）
         TextView title = new TextView(this);
-        title.setText("起号调试");
+        title.setText("起号助手（拖动我）");
         title.setTextColor(0xFFFFFFFF);
+        title.setTextSize(12);
+        title.setPadding(0, 0, 0, 8);
         floatPanel.addView(title);
+
+        // 内容区（可折叠）
+        floatContent = new LinearLayout(this);
+        floatContent.setOrientation(LinearLayout.VERTICAL);
 
         floatLog = new TextView(this);
         floatLog.setTextColor(0xFF00FF00);
         floatLog.setTextSize(10);
         floatLog.setText("就绪\n");
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(500, 260);
-        floatPanel.addView(floatLog, lp);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(460, 200);
+        floatContent.addView(floatLog, lp);
 
         Button btnFollow = new Button(this);
-        btnFollow.setText("开始跟箭头");
+        btnFollow.setText("开始跟引导石");
         btnFollow.setOnClickListener(v -> BotEngine.getInstance().toggleFollow());
-        floatPanel.addView(btnFollow);
+        floatContent.addView(btnFollow);
 
-        Button btnTestTap = new Button(this);
-        btnTestTap.setText("测试点击屏幕中心");
-        btnTestTap.setOnClickListener(v -> tap(getScreenWidth() / 2f, getScreenHeight() / 2f, null));
-        floatPanel.addView(btnTestTap);
+        Button btnStop = new Button(this);
+        btnStop.setText("停止");
+        btnStop.setOnClickListener(v -> BotEngine.getInstance().stop());
+        floatContent.addView(btnStop);
 
-        WindowManager.LayoutParams wlp = new WindowManager.LayoutParams(
+        Button btnMin = new Button(this);
+        btnMin.setText("最小化/展开");
+        btnMin.setOnClickListener(v -> toggleMinimize());
+        floatContent.addView(btnMin);
+
+        floatPanel.addView(floatContent);
+
+        // 标题栏拖动
+        title.setOnTouchListener((v, event) -> {
+            switch (event.getAction()) {
+                case android.view.MotionEvent.ACTION_DOWN:
+                    dragStartX = event.getRawX();
+                    dragStartY = event.getRawY();
+                    dragStartWX = floatParams.x;
+                    dragStartWY = floatParams.y;
+                    return true;
+                case android.view.MotionEvent.ACTION_MOVE:
+                    floatParams.x = dragStartWX + (int) (event.getRawX() - dragStartX);
+                    floatParams.y = dragStartWY + (int) (event.getRawY() - dragStartY);
+                    try { windowManager.updateViewLayout(floatPanel, floatParams); } catch (Exception ignored) {}
+                    return true;
+            }
+            return false;
+        });
+
+        floatParams = new WindowManager.LayoutParams(
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
@@ -165,15 +205,21 @@ public class AssistService extends AccessibilityService {
                         : WindowManager.LayoutParams.TYPE_PHONE,
                 WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
                 PixelFormat.TRANSLUCENT);
-        wlp.gravity = Gravity.TOP | Gravity.START;
-        wlp.x = 20;
-        wlp.y = 20;
+        floatParams.gravity = Gravity.TOP | Gravity.START;
+        floatParams.x = 20;
+        floatParams.y = 200;
         try {
-            windowManager.addView(floatPanel, wlp);
+            windowManager.addView(floatPanel, floatParams);
             floatAdded = true;
         } catch (Exception e) {
             logLine("悬浮窗添加失败: " + e.getMessage());
         }
+    }
+
+    private void toggleMinimize() {
+        if (floatContent == null) return;
+        minimized = !minimized;
+        floatContent.setVisibility(minimized ? android.view.View.GONE : android.view.View.VISIBLE);
     }
 
     public void removeFloatPanel() {
