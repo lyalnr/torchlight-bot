@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">火炬起号助手</string>
+    <string name="accessibility_label">火炬起号助手(无障碍)</string>
+    <string name="accessibility_desc">用于模拟触摸、截图和自动起号操作</string>
+</resources>
