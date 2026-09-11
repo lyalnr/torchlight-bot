@@ -41,6 +41,13 @@
         android:layout_marginTop="8dp"
         android:text="开启悬浮窗权限" />
 
+    <Button
+        android:id="@+id/btnCheckUpdate"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="检查更新" />
+
     <TextView
         android:id="@+id/tvLog"
         android:layout_width="match_parent"

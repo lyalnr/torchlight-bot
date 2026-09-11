@@ -5,7 +5,8 @@ import android.os.Handler;
 import android.os.Looper;
 
 /**
- * 主引擎：截图 → 找金色箭头 → 摇杆朝箭头移动 → 循环
+ * 主引擎状态机：
+ * 识别主线任务 → 点击 → 出现引导石 → 跟引导石走 → 到NPC → 循环
  */
 public class BotEngine {
 
@@ -15,7 +16,11 @@ public class BotEngine {
     // 浮动摇杆按下落点（归一化，左下角）
     private final float STICK_CX = 0.10f;
     private final float STICK_CY = 0.80f;
-    private final float STICK_R = 0.12f;
+    private final float STICK_R = 0.14f;
+
+    // "主线"任务按钮位置（左侧顶部，固定常驻）归一化坐标
+    private final float MAIN_X = 0.08f;
+    private final float MAIN_Y = 0.10f;
 
     // 橙色菱形引导石搜索区域（中右区域）
     private final float[] STONE_REGION = {0.30f, 0.30f, 0.95f, 0.80f};
@@ -35,7 +40,7 @@ public class BotEngine {
         if (running) return;
         running = true;
         AssistService svc = AssistService.getInstance();
-        if (svc != null) svc.logLine("开始跟箭头循环");
+        if (svc != null) svc.logLine("开始起号循环");
         loop();
     }
 
@@ -61,46 +66,45 @@ public class BotEngine {
                     handler.postDelayed(() -> loop(), 500);
                     return;
                 }
-                step(bmp);
+                decide(bmp);
             }
         });
     }
 
-    private void step(Bitmap bmp) {
+    /**
+     * 每一步决策：
+     * 1. 找引导石。找到了 → 朝它走
+     * 2. 没找到 → 点一下"主线"，等引导石出现
+     */
+    private void decide(Bitmap bmp) {
         final AssistService svc = AssistService.getInstance();
         if (svc == null) { stop(); return; }
 
         int w = bmp.getWidth();
         int h = bmp.getHeight();
 
-        // 找最靠下的橙色菱形引导石（离角色最近的那个）
         ImageFinder.Result stone = ImageFinder.findLowestCluster(
                 bmp, (r, g, b) -> ImageFinder.isOrange(r, g, b), STONE_REGION);
 
-        if (stone == null) {
-            svc.logLine("未找到引导石");
-            handler.postDelayed(() -> loop(), 600);
-            return;
+        if (stone != null) {
+            float dx = stone.x - 0.5f;
+            float dy = stone.y - 0.55f;
+            svc.logLine(String.format("引导石@(%.2f,%.2f) 偏移(%.2f,%.2f)", stone.x, stone.y, dx, dy));
+
+            if (Math.abs(dx) < 0.06f && stone.y > 0.40f) {
+                float dirX = clamp(dx * 3f, -1f, 1f);
+                move(w, h, dirX, -0.7f, 280);
+                return;
+            }
+
+            float moveX = clamp(dx * 2.5f, -1f, 1f);
+            float moveY = clamp(dy * 2.0f, -0.8f, 0.8f);
+            move(w, h, moveX, moveY, 300);
+        } else {
+            svc.logLine("无引导石，点击主线任务");
+            svc.tap(MAIN_X * w, MAIN_Y * h, () ->
+                    handler.postDelayed(() -> loop(), 1500));
         }
-
-        // 目标在屏幕中的偏差（以角色位置为参照，角色在屏幕中央偏下）
-        float dx = stone.x - 0.5f;
-        float dy = stone.y - 0.55f;
-
-        svc.logLine(String.format("引导石@(%.2f,%.2f) 偏移(%.2f,%.2f)", stone.x, stone.y, dx, dy));
-
-        // 如果目标已经很近（屏幕中央偏下），前进并稍等
-        if (Math.abs(dx) < 0.05f && Math.abs(dy) < 0.12f) {
-            svc.logLine("接近引导石，前进");
-            move(w, h, 0f, -0.6f, 250);
-            return;
-        }
-
-        // 朝目标方向推动摇杆
-        float moveX = clamp(dx * 2.5f, -1f, 1f);
-        float moveY = clamp(dy * 2.0f, -0.8f, 0.8f);
-
-        move(w, h, moveX, moveY, 300);
     }
 
     private void move(int w, int h, float dirX, float dirY, long holdMs) {

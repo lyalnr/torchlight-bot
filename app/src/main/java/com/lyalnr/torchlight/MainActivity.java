@@ -31,7 +31,7 @@ public class MainActivity extends Activity {
             }
             AssistService.getInstance().showFloatPanel();
             tvStatus.setText("状态：已启动");
-            Toast.makeText(this, "悬浮窗已显示，去游戏里点\"开始跟箭头\"", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "悬浮窗已显示", Toast.LENGTH_SHORT).show();
         });
 
         btnEnableAccess.setOnClickListener(v -> {
@@ -42,6 +42,9 @@ public class MainActivity extends Activity {
             startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                     Uri.parse("package:" + getPackageName())));
         });
+
+        Button btnCheckUpdate = findViewById(R.id.btnCheckUpdate);
+        btnCheckUpdate.setOnClickListener(v -> new UpdateChecker().check(this));
     }
 
     @Override
