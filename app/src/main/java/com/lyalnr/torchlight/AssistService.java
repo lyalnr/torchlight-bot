@@ -133,6 +133,35 @@ public class AssistService extends AccessibilityService {
         });
     }
 
+    /** 保存当前截图到公共 Download 目录（用于调试取色） */
+    public void saveScreenshot() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            logLine("截图需要 Android 11+");
+            return;
+        }
+        takeScreenshot(new ScreenshotCallback() {
+            @Override
+            public void onScreenshot(Bitmap bmp) {
+                if (bmp == null) {
+                    logLine("截图失败");
+                    return;
+                }
+                try {
+                    java.io.File dir = android.os.Environment.getExternalStoragePublicDirectory(
+                            android.os.Environment.DIRECTORY_DOWNLOADS);
+                    java.io.File f = new java.io.File(dir,
+                            "torch_" + System.currentTimeMillis() + ".png");
+                    java.io.FileOutputStream fos = new java.io.FileOutputStream(f);
+                    bmp.compress(Bitmap.CompressFormat.PNG, 100, fos);
+                    fos.close();
+                    logLine("已保存: " + f.getName());
+                } catch (Exception e) {
+                    logLine("保存失败: " + e.getMessage());
+                }
+            }
+        });
+    }
+
     /** 悬浮面板 */
     public void showFloatPanel() {
         if (floatAdded) return;
@@ -176,6 +205,11 @@ public class AssistService extends AccessibilityService {
         btnMin.setText("最小化/展开");
         btnMin.setOnClickListener(v -> toggleMinimize());
         floatContent.addView(btnMin);
+
+        Button btnSave = new Button(this);
+        btnSave.setText("保存截图(取色)");
+        btnSave.setOnClickListener(v -> saveScreenshot());
+        floatContent.addView(btnSave);
 
         floatPanel.addView(floatContent);
 
