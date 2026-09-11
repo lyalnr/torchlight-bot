@@ -75,9 +75,8 @@ public class UpdateChecker {
 
         new Thread(() -> {
             try {
-                // 下载到公共 Download 目录
-                File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-                File apk = new File(dir, "torchlight-bot-update.apk");
+                // 下载到 App 私有缓存目录（无需存储权限）
+                File apk = new File(ctx.getExternalCacheDir(), "update.apk");
                 HttpURLConnection conn = (HttpURLConnection) new URL(RELEASE_URL).openConnection();
                 conn.setConnectTimeout(15000);
                 conn.setReadTimeout(30000);
@@ -93,16 +92,13 @@ public class UpdateChecker {
                 in.close();
                 conn.disconnect();
 
-                // 调起系统安装
-                Uri uri = Uri.fromFile(apk);
+                // 调起系统安装（用 FileProvider）
+                Uri uri = androidx.core.content.FileProvider.getUriForFile(
+                        ctx, ctx.getPackageName() + ".fileprovider", apk);
                 Intent intent = new Intent(Intent.ACTION_VIEW);
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    intent.setDataAndType(uri, "application/vnd.android.package-archive");
-                    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                } else {
-                    intent.setDataAndType(uri, "application/vnd.android.package-archive");
-                }
-                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                intent.setDataAndType(uri, "application/vnd.android.package-archive");
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 ctx.startActivity(intent);
             } catch (Exception e) {
                 handler.post(() -> Toast.makeText(ctx, "下载失败: " + e.getMessage(), Toast.LENGTH_LONG).show());
