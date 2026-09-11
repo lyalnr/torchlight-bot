@@ -9,6 +9,7 @@ import android.graphics.PixelFormat;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.Display;
 import android.view.Gravity;
 import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
@@ -99,7 +100,7 @@ public class AssistService extends AccessibilityService {
             if (callback != null) callback.onScreenshot(null);
             return;
         }
-        takeScreenshot(getMainExecutor(), new TakeScreenshotCallback() {
+        takeScreenshot(Display.DEFAULT_DISPLAY, getMainExecutor(), new TakeScreenshotCallback() {
             @Override
             public void onSuccess(ScreenshotResult screenshot) {
                 Bitmap bmp = null;
