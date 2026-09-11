@@ -22,8 +22,8 @@ public class BotEngine {
     private final float MAIN_X = 0.08f;
     private final float MAIN_Y = 0.10f;
 
-    // 橙色菱形引导石搜索区域（中右区域）
-    private final float[] STONE_REGION = {0.30f, 0.30f, 0.95f, 0.80f};
+    // 引导石搜索区域（全屏中下部，引导石可能出现在任意方向）
+    private final float[] STONE_REGION = {0.05f, 0.25f, 0.95f, 0.85f};
 
     private boolean running = false;
 

@@ -23,9 +23,9 @@ public class ImageFinder {
         return r > 180 && g > 120 && b < 120 && r > b + 80 && g > b;
     }
 
-    /** 判断橙色菱形引导石（橙黄） */
+    /** 判断橙色菱形引导石（亮金黄：R高 G中高 B低） */
     public static boolean isOrange(int r, int g, int b) {
-        return r > 190 && g > 110 && b < 110 && r > b + 90;
+        return r > 240 && g > 170 && g < 235 && b < 110 && r > b + 130;
     }
 
     /**
